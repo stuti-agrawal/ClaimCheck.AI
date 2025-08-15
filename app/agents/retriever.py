@@ -4,55 +4,19 @@ import os, json, numpy as np, faiss, requests
 
 from app.schemas.claim import Claim
 from app.schemas.evidence import Evidence
-from app.core.config import WATSONX_BASE_URL as _BASE, WATSONX_PROJECT as _PROJECT, WATSONX_API_KEY as _APIKEY
+from app.core.config import WATSONX_BASE_URL as BASE, WATSONX_PROJECT as PROJECT_ID, WATSONX_API_KEY as APIKEY, IBM_EMBEDDINGS_MODEL_ID as EMB_MODEL_ID, IBM_RERANK_MODEL_ID as RERANK_MODEL_ID, IBM_API_VERSION as VERSION, IBM_EMBEDDINGS_MODEL_ID as EMB_MODEL_ID, IBM_RERANK_MODEL_ID as RERANK_MODEL_ID, WATSONX_API_KEY as API_KEY
+from app.utils.auth import get_ibm_iam_token
 
-BASE_URL = (_BASE or "").rstrip("/")          # avoid //ml
-PROJECT_ID = _PROJECT
-API_KEY = _APIKEY
-EMB_MODEL_ID = os.getenv("IBM_EMBEDDINGS_MODEL_ID", "").strip()   # <-- REQUIRED
-RERANK_MODEL_ID = os.getenv("IBM_RERANK_MODEL_ID", "").strip()    # optional
-
+BASE_URL = (BASE or "").rstrip("/")
 IDX_DIR   = "kb/index"
 IDX_PATH  = f"{IDX_DIR}/kb.index"
 META_PATH = f"{IDX_DIR}/kb_meta.json"
 SNIPPETS  = "kb/snippets.jsonl"
-
-# ---------- IBM helpers ----------
-_tok, _exp = None, 0
-def _ibm_token():
-    import time
-    global _tok, _exp
-    now = time.time()
-    if _tok and now < _exp - 60:
-        return _tok
-    r = requests.post(
-        "https://iam.cloud.ibm.com/identity/token",
-        data={
-            "grant_type": "urn:ibm:params:oauth:grant-type:apikey",
-            "apikey": API_KEY
-        },
-        headers={"Content-Type": "application/x-www-form-urlencoded"},
-        timeout=30
-    )
-    r.raise_for_status()
-    data = r.json(); _tok = data["access_token"]; _exp = now + 3000
-    return _tok
-
-def _assert_ibm_ready():
-    missing = []
-    if not BASE_URL: missing.append("WATSONX_BASE_URL")
-    if not PROJECT_ID: missing.append("WATSONX_PROJECT_ID")
-    if not API_KEY: missing.append("WATSONX_API_KEY")
-    if not EMB_MODEL_ID: missing.append("IBM_EMBEDDINGS_MODEL_ID")
-    if missing:
-        raise RuntimeError(f"IBM embeddings not configured. Missing: {', '.join(missing)}")
-
-VERSION = os.getenv("IBM_API_VERSION", "2023-05-29")
 BASE_URL = BASE_URL.rstrip("/")
 
 def _ibm_embed(texts: list[str]) -> np.ndarray:
     url = f"{BASE_URL}/ml/v1/text/embeddings?version={VERSION}"
-    hdr = {"Authorization": f"Bearer {_ibm_token()}",
+    hdr = {"Authorization": f"Bearer {get_ibm_iam_token()}",
            "Accept": "application/json",
            "Content-Type": "application/json"}
     payload = {
@@ -91,7 +55,7 @@ def _ibm_rerank(query: str, docs: list[dict], top_n: int = 5) -> list[dict]:
     if not docs or not RERANK_MODEL_ID:
         return docs
     url = f"{BASE_URL}/ml/v1/text/rerank?version={VERSION}"
-    hdr = {"Authorization": f"Bearer {_ibm_token()}",
+    hdr = {"Authorization": f"Bearer {get_ibm_iam_token()}",
            "Accept":"application/json","Content-Type":"application/json"}
     payload = {
         "input": {
@@ -118,6 +82,7 @@ def _ibm_rerank(query: str, docs: list[dict], top_n: int = 5) -> list[dict]:
 
 # ---------- Local embeddings fallback ----------
 _embedder = None
+
 def _local_embed(texts: list[str]) -> np.ndarray:
     global _embedder
     if _embedder is None:

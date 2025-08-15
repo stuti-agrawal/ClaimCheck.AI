@@ -1,48 +1,81 @@
 # app/agents/summarizer.py
 from __future__ import annotations
-import os, json, requests, re
+import os, json, time, requests
 from typing import List, Dict, Any
+
 from app.schemas.report import CallReport
 from app.schemas.claim import Claim
 from app.schemas.evidence import Evidence
 from app.schemas.verdict import Verdict
-from app.core.config import WATSONX_BASE_URL, WATSONX_PROJECT, WATSONX_API_KEY
-from app.core.json_utils import extract_json_obj
+from app.core.config import (
+    WATSONX_BASE_URL,
+    WATSONX_PROJECT,
+    IBM_SUMMARY_MODEL_ID as MODEL_ID,
+    IBM_API_VERSION,
+)
+from app.utils.auth import get_ibm_iam_token
+from app.utils.parse_json import parse_json_anywhere
 
-VERSION = os.getenv("IBM_API_VERSION", "2023-05-29")
-MODEL_ID = os.getenv("IBM_SUMMARY_MODEL_ID", "ibm/granite-3-8b-instruct")
 
-def _iam_token() -> str:
-    r = requests.post(
-        "https://iam.cloud.ibm.com/identity/token",
-        data={"grant_type":"urn:ibm:params:oauth:grant-type:apikey","apikey":WATSONX_API_KEY},
-        headers={"Content-Type":"application/x-www-form-urlencoded"},
-        timeout=30
-    )
+# -------- Helpers --------
+
+def _compact_segments(segments: List[Dict[str, Any]], max_chars: int = 6000) -> List[Dict[str, Any]]:
+    """
+    Keep the last ~N characters of transcript text to stay under token limits,
+    preserving structure (start, end, speaker, text).
+    """
+    if not segments:
+        return []
+    # Prefer the tail of the conversation (most recent context is more salient)
+    out = []
+    total = 0
+    for seg in reversed(segments):
+        t = seg.get("text", "") or ""
+        total += len(t)
+        out.append({"start": seg.get("start", 0.0),
+                    "end": seg.get("end", 0.0),
+                    "speaker": seg.get("speaker"),
+                    "text": t})
+        if total >= max_chars:
+            break
+    return list(reversed(out))
+
+def _verdict_stats(verdicts: List[Verdict]) -> Dict[str, int]:
+    s = sum(1 for v in verdicts if v.label == "supported")
+    r = sum(1 for v in verdicts if v.label == "refuted")
+    i = sum(1 for v in verdicts if v.label == "insufficient")
+    return {"supported": s, "refuted": r, "insufficient": i, "total": len(verdicts)}
+
+def _http_post_with_retry(url: str, headers: dict, body: dict, timeout: int = 120, tries: int = 4, backoff: float = 1.5):
+    for attempt in range(tries):
+        r = requests.post(url, headers=headers, json=body, timeout=timeout)
+        if r.status_code not in (429, 500, 502, 503, 504):
+            r.raise_for_status()
+            return r
+        time.sleep(backoff * (2 ** attempt))
+    # last try result:
     r.raise_for_status()
-    return r.json()["access_token"]
-
-_JSON = re.compile(r"\{[\s\S]*\}\s*$")
+    return r
 
 
-# Replace _safe_json with:
-def _safe_json(s: str) -> dict:
-    return extract_json_obj(s)
+# -------- Prompt (kept tight & structured) --------
 
-# ---- Prompt for structured output ----
 PROMPT = """You are a precise meeting summarizer for sales/stakeholder calls.
 Given transcript segments, normalized claims, and their verification labels, produce a concise executive summary.
 
 Return STRICT JSON only with:
 {
-  "call_summary": "string, <= 6 sentences, neutral, factual",
-  "action_items": ["string", "..."]            // 1-6 bullets, imperative
+  "call_summary": "string (<= 6 sentences, neutral, factual, cites concrete numbers/dates/KPIs when present)",
+  "action_items": ["string", "..."]  // 1-6 imperative bullets; each starts with a verb
 }
 
-Guidelines:
+Guidance:
 - Emphasize mismatches between stated claims and evidence.
-- Mention concrete metrics (%, $, dates) when present.
-- Avoid fluff and opinions; be concise and factual.
+- Prioritize concrete, verifiable metrics (%, $, dates, counts).
+- Be concise; avoid fluff and opinions.
+
+Context stats (for your awareness; do not invent numbers):
+{VERDICT_STATS}
 
 Segments (JSON):
 {SEGMENTS_JSON}
@@ -53,10 +86,12 @@ Claims (JSON):
 Verdicts (JSON):
 {VERDICTS_JSON}
 
-Now return JSON only:
+Output JSON only (no extra text, no markdown, no backticks):
 """
 
-# ---- Public API ----
+
+# -------- Public API --------
+
 def make_report(
     segments: List[Dict[str, Any]],
     claims: List[Claim],
@@ -65,28 +100,43 @@ def make_report(
 ) -> CallReport:
     """
     Build a CallReport:
-      - call_summary + action_items from IBM LLM
-      - claim_table from verdicts (+ best evidence id)
+      - call_summary + action_items from IBM LLM (robust parse)
+      - claim_table derived from verdicts (+ best evidence id)
     """
-    # ---- Prepare claim_table from verdicts
-    # Map claim_id -> claim text
+
+    # 1) Build claim table from verdicts (always succeeds)
     id2claim = {c.id: c.text for c in claims}
     claim_table: List[Dict[str, Any]] = []
     for v in verdicts:
         claim_text = id2claim.get(v.claim_id, "")
-        row = {
+        claim_table.append({
             "claim": claim_text,
             "status": v.label.capitalize(),
             "evidence_source": v.best_evidence_id or ""
-        }
-        claim_table.append(row)
+        })
 
-    # ---- Try IBM Granite for summary/action items
+    # 2) Short-circuit if we have no content to summarize
+    if not segments and not claims:
+        return CallReport(
+            call_summary="",
+            claim_table=claim_table,
+            action_items=["Review claims vs. evidence and confirm metrics in source-of-truth."],
+            claims=claims,
+            verdicts=verdicts,
+            evidence=evidence_flat
+        )
+
+    # 3) Prepare compact context + stats
+    compact = _compact_segments(segments, max_chars=6000)
+    stats = _verdict_stats(verdicts)
+
+    # 4) Call IBM Granite (watsonx) for structured summary
     call_summary = ""
     action_items: List[str] = []
+
     try:
-        tok = _iam_token()
-        url = f"{WATSONX_BASE_URL.rstrip('/')}/ml/v1/text/generation?version={VERSION}"
+        tok = get_ibm_iam_token()
+        url = f"{WATSONX_BASE_URL.rstrip('/')}/ml/v1/text/generation?version={IBM_API_VERSION}"
         headers = {
             "Authorization": f"Bearer {tok}",
             "Accept": "application/json",
@@ -94,7 +144,8 @@ def make_report(
         }
         body = {
             "input": PROMPT \
-                .replace("{SEGMENTS_JSON}", json.dumps(segments, ensure_ascii=False)) \
+                .replace("{VERDICT_STATS}", json.dumps(stats, ensure_ascii=False)) \
+                .replace("{SEGMENTS_JSON}", json.dumps(compact, ensure_ascii=False)) \
                 .replace("{CLAIMS_JSON}", json.dumps([{"id": c.id, "text": c.text} for c in claims], ensure_ascii=False)) \
                 .replace("{VERDICTS_JSON}", json.dumps([{
                     "claim_id": v.claim_id,
@@ -108,31 +159,40 @@ def make_report(
             "parameters": {
                 "decoding_method": "greedy",
                 "temperature": 0.0,
-                "max_new_tokens": 300,
+                "max_new_tokens": 400,
                 "min_new_tokens": 0,
-                "repetition_penalty": 1.0
+                "repetition_penalty": 1.0,
+                "stop_sequences": ["\n\n", "\nOutput JSON", "\nSegments (JSON):"]
             }
         }
-        r = requests.post(url, headers=headers, json=body, timeout=120)
-        r.raise_for_status()
-        out = r.json()
-        gen = (out.get("results") or [{}])[0].get("generated_text", "")
-        parsed = _safe_json(gen)
-        call_summary = (parsed.get("call_summary") or "").strip()
-        action_items = parsed.get("action_items") or []
+
+        resp = _http_post_with_retry(url, headers, body, timeout=120)
+        out = resp.json()
+        gen = (out.get("results") or [{}])[0].get("generated_text", "") or ""
+
+        # Robust parse (accepts full JSON, partials, or multiple JSON objects)
+        parsed = parse_json_anywhere(gen, root_key=None)  # expecting a single dict with keys above
+        if isinstance(parsed, dict):
+            call_summary = (parsed.get("call_summary") or "").strip()
+            action_items = parsed.get("action_items") or []
+        else:
+            # If parse returns a list (rare), try first dict
+            if parsed and isinstance(parsed, list) and isinstance(parsed[0], dict):
+                call_summary = (parsed[0].get("call_summary") or "").strip()
+                action_items = parsed[0].get("action_items") or []
+
         if not isinstance(action_items, list):
             action_items = [str(action_items)]
+
     except Exception as e:
-        # Fallback: extract a terse summary from first few segments
+        # 5) Fallback: build a terse summary from first few segments and stats
         print(f"[summarizer] watsonx generation failed: {e}")
-        texts = [s.get("text","") for s in segments if s.get("text")]
+        texts = [s.get("text","") for s in compact if s.get("text")]
         joined = " ".join(texts)[:450].strip()
         call_summary = (joined + "…") if joined else ""
-        if not action_items:
-            action_items = ["Review claims vs. evidence and confirm metrics in source-of-truth."]
 
-    # ---- Build CallReport dataclass (schema)
-    report = CallReport(
+    # 6) Return CallReport
+    return CallReport(
         call_summary=call_summary,
         claim_table=claim_table,
         action_items=action_items,
@@ -140,4 +200,3 @@ def make_report(
         verdicts=verdicts,
         evidence=evidence_flat
     )
-    return report
