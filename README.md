@@ -1,7 +1,7 @@
-# ClaimCheck.AI — Agentic Fact Verification for Calls (IBM watsonx)
+# ClaimCheck.AI — Agentic Fact Verification for Calls
 
 **ClaimCheck.AI** is an agentic AI pipeline that turns meeting audio (Zoom/phone) into an evidence-backed report:
-1) **ASR Agent (IBM STT)** → transcript + timestamps  
+1) **ASR Agent** → transcript + timestamps  
 2) **Claim Extraction (watsonx.ai LLM)** → JSON claims  
 3) **Evidence Retrieval (watsonx.ai Embeddings + FAISS + optional Rerank)** → KB hits  
 4) **Verification (watsonx.ai LLM)** → supported/refuted/insufficient + citations  
@@ -9,7 +9,7 @@
 
 ## ✨ Why it matters
 High-stakes calls contain promises and metrics (SLA, compliance, finance). ClaimCheck.AI verifies statements against your **trusted KB** so decisions are grounded in facts—not memory.
-
+git branch -M main
 ---
 
 ## 🔧 Project structure
@@ -27,7 +27,7 @@ claim-check/
 │  │  └─ json_utils.py        # robust JSON extraction from LLM outputs
 │  ├─ schemas/                # pydantic models (Claim, Evidence, Verdict, CallReport)
 │  ├─ services/
-│  │  └─ asr.py               # IBM Speech to Text or Whisper (fallback)
+│  │  └─ asr.py               # Speech to Text model
 │  └─ main.py                 # FastAPI: /health, /process-audio, /process-transcript
 ├─ kb/
 │  ├─ snippets.jsonl          # your knowledge base (facts; one JSON per line)
@@ -117,12 +117,18 @@ curl http://127.0.0.1:8000/health/ibm
 
 ## 🧠 How it works (agentic)
 
-- **ASR Agent (IBM STT):** audio → timestamped segments (+ diarization)
-- **Claim Extractor (watsonx.ai):** segments → `{id, text, speaker, start, end}`
-- **Retriever (Embeddings + FAISS + Rerank):** claim → top KB snippets
-- **Verifier (watsonx.ai):** claim + evidence → verdict + rationale + citation_ids
-- **Summarizer (watsonx.ai):** executive summary + action items
-- **Output:** `CallReport` JSON; easy to render as PDF/HTML
+## 🧠 Core Concepts and Models
+
+ClaimCheck.AI combines modern **agentic AI** orchestration with core NLP, IR, and speech processing techniques. Each agent is powered by a specific model or algorithm:
+
+| Agent         | Function                             | Model/Tool Used                              | Concepts |
+|---------------|--------------------------------------|-----------------------------------------------|----------|
+| ASR Agent     | Audio transcription + timestamps     | `IBM Speech-to-Text` or `Whisper`             | Automatic Speech Recognition (ASR), Diarization |
+| Claim Extractor | Turns transcript → atomic claims    | `watsonx.ai` Prompt Lab + `granite-3-8b-instruct` | Information Extraction, Prompt Engineering |
+| Retriever     | Find matching KB facts               | `granite-embedding-107m-multilingual`, FAISS, optional `slate-30m-rtrvr` | Embedding-based Retrieval, Vector Search, Reranking |
+| Verifier      | Evaluate support/refute status       | `granite-3-8b-instruct`                       | Fact Verification, Retrieval-Augmented Generation (RAG) |
+| Summarizer    | Generate exec summary + action items | `granite-3-8b-instruct`                       | Abstractive Summarization, Plan Extraction |
+
 
 ---
 
@@ -139,7 +145,4 @@ curl http://127.0.0.1:8000/health/ibm
 - **OpenMP error (macOS)** → set `KMP_DUPLICATE_LIB_OK=TRUE` and `OMP_NUM_THREADS=1`.  
 - **JSON parse errors** → we use a robust extractor; check server logs `[RAW OUTPUT]`.
 
----
 
-## 📄 License
-MIT (or your choice). See `LICENSE`.
