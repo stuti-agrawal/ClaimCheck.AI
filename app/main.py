@@ -3,10 +3,22 @@ import os
 from fastapi import FastAPI
 from fastapi import Body
 from fastapi import UploadFile, File
+from fastapi.middleware.cors import CORSMiddleware
 from app.core.orchestrator import process_call
 from app.core.ibm_sanity import sanity_embeddings, sanity_generation
 
 app = FastAPI(title="ClaimCheck")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/health")
 def health():

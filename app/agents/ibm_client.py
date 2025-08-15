@@ -105,4 +105,4 @@ def _extract_json_block(text: str) -> Dict[str, Any]:
 def run_claim_extractor(transcript: str) -> Dict[str, Any]:
     payload = _build_payload(transcript)
     out_text = _post_generation(payload)
-    return _extract_json_block(out_text)  # -> {"claims":[...]}
+    return _extract_json_block(out_text)
