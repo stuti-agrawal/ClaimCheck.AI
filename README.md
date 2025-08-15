@@ -11,6 +11,7 @@
 
 High-stakes calls contain promises and metrics (SLA, compliance, finance). ClaimCheck.AI verifies statements against your **trusted KB** so decisions are grounded in facts—not memory.
 git branch -M main
+
 ---
 
 ## 🔧 Project structure
