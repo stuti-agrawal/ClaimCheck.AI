@@ -1,6 +1,6 @@
 # ClaimCheck.AI — Agentic Fact Verification for Calls
 
-**ClaimCheck.AI** is an agentic AI pipeline that turns meeting audio (Zoom/phone) into an evidence-backed report:
+**ClaimCheck.AI** is an multi-agent AI platform that turns meeting audio (Zoom/phone) into an evidence-backed report:
 1) **ASR Agent** → transcript + timestamps  
 2) **Claim Extraction (watsonx.ai LLM)** → JSON claims  
 3) **Evidence Retrieval (watsonx.ai Embeddings + FAISS + optional Rerank)** → KB hits  
