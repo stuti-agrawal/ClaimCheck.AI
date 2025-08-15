@@ -1,0 +1,19 @@
+{"doc_id":"uptime_q2_report","source":"Global Uptime Dashboard","snippet":"Q2 2025 uptime was 99.982% globally, with LATAM experiencing a 3-hour outage on May 14, lowering uptime in that region to 99.965%.","metadata":{"type":"uptime","quarter":"Q2","year":2025}}
+{"doc_id":"latency_q2_report","source":"Performance Metrics","snippet":"P95 latency in Q2 2025 averaged 198ms globally, but APAC had spikes to 250ms during peak hours in June.","metadata":{"type":"latency","quarter":"Q2","year":2025}}
+{"doc_id":"uptime_incident_apac","source":"Incident Report","snippet":"Outage in APAC data center on June 21 lasted 45 minutes and impacted 12% of customer requests.","metadata":{"type":"incident","date":"2025-06-21"}}
+{"doc_id":"uptime_contract","source":"SLA Agreement","snippet":"Service provider guarantees 99.99% uptime per month; failure results in service credits.","metadata":{"type":"sla","effective_date":"2024-05-01"}}
+{"doc_id":"uptime_customer_feedback","source":"Customer Survey","snippet":"Several enterprise customers in LATAM reported downtime exceeding 2 hours in May 2025.","metadata":{"type":"feedback","month":"2025-05"}}
+
+{"doc_id":"relief_payouts","source":"Disaster Relief Payment System","snippet":"As of July 20, 2025, 87% of registered affected citizens had received payments. Delays remain for 13% due to missing bank details or unresolved eligibility verification.","metadata":{"type":"payout_report","date":"2025-07-20"}}
+{"doc_id":"relief_registry","source":"National Citizen Registry","snippet":"Registry lists 142,300 citizens marked as affected; payment records show 124,801 completed transfers.","metadata":{"type":"registry_report","date":"2025-07-20"}}
+{"doc_id":"relief_remote_area_issues","source":"NGO Field Report","snippet":"Field agents in remote areas reported difficulty verifying identities, delaying payouts to hundreds of citizens.","metadata":{"type":"field_report","date":"2025-07-18"}}
+{"doc_id":"relief_policy_doc","source":"Government Policy Document","snippet":"All affected citizens are eligible for relief payments; disbursement is to be completed within 30 days of disaster declaration.","metadata":{"type":"policy","effective_date":"2025-06-01"}}
+{"doc_id":"relief_complaints","source":"Public Complaints Hotline","snippet":"Calls received in late July indicate some citizens in mountain regions still have not received payment.","metadata":{"type":"complaint","month":"2025-07"}}
+
+{"doc_id":"aml_yearly_trend","source":"Annual Compliance Review 2024","snippet":"Overall AML coverage rate improved from 92% in 2023 to 97% in 2024.","metadata":{"type":"trend","year":2024}}
+{"doc_id":"uptime_yearly_trend","source":"Annual Service Report 2024","snippet":"Annual uptime for 2024 was 99.975% with improvements in redundancy and failover systems.","metadata":{"type":"trend","year":2024}}
+{"doc_id":"relief_previous_disaster","source":"Relief Audit 2024","snippet":"In the 2024 floods, 99% of affected citizens were compensated within 45 days.","metadata":{"type":"historical","year":2024}}
+
+{"doc_id":"aml_press_release","source":"Bank Press Release","snippet":"We are proud to announce we achieved 100% AML screening compliance for all transactions in Q2 2025.","metadata":{"type":"press","quarter":"Q2","year":2025}}
+{"doc_id":"uptime_press_release","source":"Cloud Provider Blog","snippet":"Our infrastructure delivered 99.99% uptime globally with record-low latency this quarter.","metadata":{"type":"press","quarter":"Q2","year":2025}}
+{"doc_id":"relief_press_release","source":"Govt News Bulletin","snippet":"The government has successfully disbursed relief payments to all citizens affected by the July disaster.","metadata":{"type":"press","date":"2025-07-21"}}
