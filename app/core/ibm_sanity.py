@@ -1,7 +1,7 @@
 # app/core/ibm_sanity.py
 import os, requests, json, numpy as np
 from app.core.config import WATSONX_BASE_URL, WATSONX_PROJECT, WATSONX_API_KEY
-from app.utils.auth import get_ibm_iam_token
+from app.core.auth import get_ibm_iam_token
 
 VERSION = os.getenv("IBM_API_VERSION", "2023-05-29")
 EMB = os.getenv("IBM_EMBEDDINGS_MODEL_ID", "")

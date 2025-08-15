@@ -4,9 +4,9 @@ import os, json, re, time, requests
 from typing import Dict, Any, List
 
 from app.core.config import WATSONX_BASE_URL, WATSONX_PROJECT, IBM_CLAIM_MODEL_ID
-from app.utils.auth import get_ibm_iam_token
+from app.core.auth import get_ibm_iam_token
 from app.schemas.claim import Claim
-from app.utils.parse_json import parse_json_anywhere
+from app.core.parse_json import parse_json_anywhere
 
 GEN_URL = f"{WATSONX_BASE_URL.rstrip('/')}/ml/v1/text/generation?version=2023-05-29"
 

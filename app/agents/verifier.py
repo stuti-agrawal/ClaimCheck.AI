@@ -7,8 +7,8 @@ from app.schemas.claim import Claim
 from app.schemas.evidence import Evidence
 from app.schemas.verdict import Verdict
 from app.core.config import WATSONX_BASE_URL, WATSONX_PROJECT, IBM_VERIFIER_MODEL_ID, IBM_API_VERSION
-from app.utils.auth import get_ibm_iam_token
-from app.utils.parse_json import parse_json_anywhere 
+from app.core.auth import get_ibm_iam_token
+from app.core.parse_json import parse_json_anywhere 
 
 PROMPT = """You are a precise fact verifier.
 Return STRICT JSON ONLY. Your first character MUST be '{' and your last character MUST be '}'.

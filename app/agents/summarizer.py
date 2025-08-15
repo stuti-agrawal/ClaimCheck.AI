@@ -13,8 +13,8 @@ from app.core.config import (
     IBM_SUMMARY_MODEL_ID as MODEL_ID,
     IBM_API_VERSION,
 )
-from app.utils.auth import get_ibm_iam_token
-from app.utils.parse_json import parse_json_anywhere
+from app.core.auth import get_ibm_iam_token
+from app.core.parse_json import parse_json_anywhere
 
 
 # -------- Helpers --------

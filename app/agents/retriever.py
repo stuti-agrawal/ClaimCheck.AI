@@ -5,7 +5,7 @@ import os, json, numpy as np, faiss, requests
 from app.schemas.claim import Claim
 from app.schemas.evidence import Evidence
 from app.core.config import WATSONX_BASE_URL as BASE, WATSONX_PROJECT as PROJECT_ID, WATSONX_API_KEY as APIKEY, IBM_EMBEDDINGS_MODEL_ID as EMB_MODEL_ID, IBM_RERANK_MODEL_ID as RERANK_MODEL_ID, IBM_API_VERSION as VERSION, IBM_EMBEDDINGS_MODEL_ID as EMB_MODEL_ID, IBM_RERANK_MODEL_ID as RERANK_MODEL_ID, WATSONX_API_KEY as API_KEY
-from app.utils.auth import get_ibm_iam_token
+from app.core.auth import get_ibm_iam_token
 
 BASE_URL = (BASE or "").rstrip("/")
 IDX_DIR   = "kb/index"
