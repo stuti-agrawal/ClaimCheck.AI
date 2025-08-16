@@ -95,11 +95,18 @@ If you change the KB, rebuild the index by deleting the `kb/index/` folder.
 
 ### 4) Run the API
 ```bash
-# macOS OpenMP fix (optional) + run
-KMP_DUPLICATE_LIB_OK=TRUE OMP_NUM_THREADS=1 uvicorn app.main:app --reload
+uvicorn app.main:app --reload
 ```
 
-### 5) Try it
+### 5) Run the UI
+```bash
+cd ui/claimcheck-ui
+pnpm install
+pnpm dev
+```
+- If you change the UI dev port/host, add it to `allow_origins` in `app/main.py`.
+
+### 6) Try it
 
 **Transcript path (no audio):**
 ```bash
@@ -147,5 +154,9 @@ ClaimCheck.AI combines modern **agentic AI** orchestration with core NLP, IR, an
 - **FAISS dim mismatch** → delete `kb/index/` after changing embedding model.  
 - **OpenMP error (macOS)** → set `KMP_DUPLICATE_LIB_OK=TRUE` and `OMP_NUM_THREADS=1`.  
 - **JSON parse errors** → we use a robust extractor; check server logs `[RAW OUTPUT]`.
-
+- **Rebuild index** → Incorrect evidence showing up in the evidence drawer
+```bash
+ rm -f kb/index/kb.index kb/index/kb_meta.json
+python -c "from app.agents.retriever import _build_or_load; _build_or_load(); print('rebuild done')"
+```
 
