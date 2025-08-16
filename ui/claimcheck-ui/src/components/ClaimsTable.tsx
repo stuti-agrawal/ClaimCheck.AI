@@ -25,7 +25,9 @@ export function ClaimsTable() {
     data.sort((a: any, b: any) => (sortAsc ? (a.verdict?.confidence ?? 0) - (b.verdict?.confidence ?? 0) : (b.verdict?.confidence ?? 0) - (a.verdict?.confidence ?? 0)))
 
     return data.map((r: any) => {
-      const evid = evidence.find((e) => e.doc_id === r.verdict?.best_evidence_id)
+      const cited = r.verdict?.citation_ids as string[] | undefined
+      const firstId = (cited && cited[0]) || r.verdict?.best_evidence_id
+      const evid = firstId ? evidence.find((e) => e.doc_id === firstId) : undefined
       return { ...r, evidence: evid }
     })
   }, [run, filter, sortAsc])

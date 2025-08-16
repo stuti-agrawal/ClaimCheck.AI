@@ -97,6 +97,8 @@ def make_report(
     claims: List[Claim],
     evidence_flat: List[Evidence],
     verdicts: List[Verdict],
+    *,
+    evidence_by_claim: Dict[str, List[Evidence]] | None = None,
 ) -> CallReport:
     """
     Build a CallReport:
@@ -123,7 +125,8 @@ def make_report(
             action_items=["Review claims vs. evidence and confirm metrics in source-of-truth."],
             claims=claims,
             verdicts=verdicts,
-            evidence=evidence_flat
+            evidence=evidence_flat,
+            evidence_by_claim=evidence_by_claim or {},
         )
 
     # 3) Prepare compact context + stats
@@ -198,5 +201,6 @@ def make_report(
         action_items=action_items,
         claims=claims,
         verdicts=verdicts,
-        evidence=evidence_flat
+        evidence=evidence_flat,
+        evidence_by_claim=evidence_by_claim or {},
     )

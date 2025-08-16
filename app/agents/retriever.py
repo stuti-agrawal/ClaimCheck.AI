@@ -1,10 +1,17 @@
 # app/agents/retriever.py
 from typing import List, Tuple, Dict
-import os, json, numpy as np, faiss, requests
+import os, json, re, numpy as np, faiss, requests
 
 from app.schemas.claim import Claim
 from app.schemas.evidence import Evidence
-from app.core.config import WATSONX_BASE_URL as BASE, WATSONX_PROJECT as PROJECT_ID, WATSONX_API_KEY as APIKEY, IBM_EMBEDDINGS_MODEL_ID as EMB_MODEL_ID, IBM_RERANK_MODEL_ID as RERANK_MODEL_ID, IBM_API_VERSION as VERSION, IBM_EMBEDDINGS_MODEL_ID as EMB_MODEL_ID, IBM_RERANK_MODEL_ID as RERANK_MODEL_ID, WATSONX_API_KEY as API_KEY
+from app.core.config import (
+    WATSONX_BASE_URL as BASE,
+    WATSONX_PROJECT as PROJECT_ID,
+    WATSONX_API_KEY as API_KEY,
+    IBM_EMBEDDINGS_MODEL_ID as EMB_MODEL_ID,
+    IBM_RERANK_MODEL_ID as RERANK_MODEL_ID,
+    IBM_API_VERSION as VERSION,
+)
 from app.core.auth import get_ibm_iam_token
 
 BASE_URL = (BASE or "").rstrip("/")
@@ -57,12 +64,12 @@ def _ibm_rerank(query: str, docs: list[dict], top_n: int = 5) -> list[dict]:
     url = f"{BASE_URL}/ml/v1/text/rerank?version={VERSION}"
     hdr = {"Authorization": f"Bearer {get_ibm_iam_token()}",
            "Accept":"application/json","Content-Type":"application/json"}
+    # Use stable, unique ids per passage for rerank, then map back
+    passages = [{"id": str(i), "text": d["snippet"]} for i, d in enumerate(docs)]
+    id2doc = {str(i): d for i, d in enumerate(docs)}
     payload = {
-        "input": {
-            "query": query,
-            "passages": [{"id": d["doc_id"], "text": d["snippet"]} for d in docs]
-        },
-        "model_id": RERANK_MODEL_ID,               # <-- required
+        "input": {"query": query, "passages": passages},
+        "model_id": RERANK_MODEL_ID,
         "project_id": PROJECT_ID,
         "top_n": min(top_n, len(docs))
     }
@@ -70,10 +77,9 @@ def _ibm_rerank(query: str, docs: list[dict], top_n: int = 5) -> list[dict]:
     if r.status_code != 200:
         return docs
     order = r.json().get("results", [])
-    id2doc = {d["doc_id"]: d for d in docs}
     out = []
     for it in order:
-        d = id2doc.get(it["id"])
+        d = id2doc.get(it.get("id"))
         if d:
             d = {**d, "score": it.get("relevance", d.get("score", d.get("score", 0.0)))}
             out.append(d)
@@ -126,6 +132,9 @@ def _build_or_load():
     json.dump(docs, open(META_PATH, "w"))
     return index, docs
 
+def _normalize_snippet(s: str) -> str:
+    return re.sub(r"\s+", " ", (s or "").strip()).lower()
+
 def _search(query_text: str, k: int = 8) -> list[dict]:
     index, meta = _build_or_load()
     try:
@@ -146,7 +155,16 @@ def _search(query_text: str, k: int = 8) -> list[dict]:
         hits = _ibm_rerank(query_text, hits, top_n=5) if _use_ibm() else hits
     except Exception as e:
         print(f"[retriever] IBM rerank failed, using original hits: {e}")
-    return hits
+    # Deduplicate by normalized snippet text while preserving order
+    seen_snippets = set()
+    deduped = []
+    for h in hits:
+        key = _normalize_snippet(h["snippet"])
+        if key in seen_snippets:
+            continue
+        seen_snippets.add(key)
+        deduped.append(h)
+    return deduped
 
 def retrieve_evidence_for_claims(claims: List[Claim], k: int = 8) -> Tuple[List[Claim], Dict[str, List[Evidence]]]:
     claim_to_evidence: Dict[str, List[Evidence]] = {}

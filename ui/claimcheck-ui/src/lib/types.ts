@@ -23,6 +23,7 @@ export type Verdict = {
   confidence?: number
   best_evidence_id?: string
   rationale?: string
+  citation_ids?: string[]
 }
 
 export type CallReport = {
@@ -32,6 +33,7 @@ export type CallReport = {
   claims: Claim[]
   evidence: Evidence[]
   verdicts: Verdict[]
+  evidence_by_claim?: Record<string, Evidence[]>
 }
 
 export type InputKind = 'audio' | 'transcript' | 'sample'

@@ -1,8 +1,5 @@
 # ClaimCheck.AI — Agentic Fact Verification for Calls
 
-<img width="1317" height="780" alt="image" src="https://github.com/user-attachments/assets/9fa259e1-3527-4573-86ec-a27053370a03" />
-
-
 **ClaimCheck.AI** is an multi-agent AI platform that turns meeting audio (Zoom/phone) into an evidence-backed report:
 1) **ASR Agent** → transcript + timestamps  
 2) **Claim Extraction (watsonx.ai LLM)** → JSON claims  
@@ -75,6 +72,7 @@ IBM_EMBEDDINGS_MODEL_ID=ibm/granite-embedding-107m-multilingual   # 384-dim
 IBM_RERANK_MODEL_ID=ibm/slate-30m-english-rtrvr-v2                 # optional
 IBM_VERIFIER_MODEL_ID=ibm/granite-3-8b-instruct
 IBM_SUMMARY_MODEL_ID=ibm/granite-3-8b-instruct
+IBM_CLAIM_MODEL_ID=ibm/granite-3-8b-instruct
 
 # Speech to Text (IBM)
 IBM_STT_URL=<your-ibm-stt-instance-url>   # e.g. https://api.us-south.speech-to-text.watson.cloud.ibm.com/instances/XXXX
@@ -101,15 +99,7 @@ If you change the KB, rebuild the index by deleting the `kb/index/` folder.
 KMP_DUPLICATE_LIB_OK=TRUE OMP_NUM_THREADS=1 uvicorn app.main:app --reload
 ```
 
-### 5) Run the UI
-```bash
-cd ui
-pnpm install
-pnpm dev
-```
-- If you change the UI dev port/host, add it to `allow_origins` in `app/main.py`.
-
-### 6) Try it
+### 5) Try it
 
 **Transcript path (no audio):**
 ```bash

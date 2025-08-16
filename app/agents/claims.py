@@ -86,7 +86,7 @@ def _build_claims_payload(transcript: str) -> Dict[str, Any]:
         "input": prompt,
         "parameters": {
             "decoding_method": "greedy",
-            "max_new_tokens": 1000,
+            "max_new_tokens": 700,
             "min_new_tokens": 0,
             "temperature": 0.0,
             "repetition_penalty": 1.0,

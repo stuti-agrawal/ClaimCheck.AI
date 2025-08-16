@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { useAppStore } from '@/store/appStore'
+import type { Evidence } from '@/lib/types'
 
 export function EvidenceDrawer() {
   const run = useAppStore((s) => s.runs.find((r) => r.id === s.currentRunId))
@@ -11,10 +12,24 @@ export function EvidenceDrawer() {
   const verdict = useMemo(() => run?.report?.verdicts.find((v) => v.claim_id === claimId), [run, claimId])
 
   const evidences = useMemo(() => {
-    if (!run?.report || !verdict) return []
-    const sorted = [...run.report.evidence].sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
+    if (!run?.report) return [] as Evidence[]
+    const report = run.report
+
+    // 1) Prefer cited evidence for this claim
+    const citedIds = verdict?.citation_ids || []
+    if (citedIds.length > 0) {
+      const cited = report.evidence.filter((e) => citedIds.includes(e.doc_id))
+      if (cited.length > 0) return cited
+    }
+
+    // 2) Fallback to per-claim retrieved evidence
+    const byClaim = report.evidence_by_claim?.[claimId ?? ''] || []
+    if (byClaim.length > 0) return byClaim
+
+    // 3) Final fallback: top-scored global evidence
+    const sorted = [...report.evidence].sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
     return sorted.slice(0, 5)
-  }, [run, verdict])
+  }, [run, verdict, claimId])
 
   if (!isOpen) return null
 
@@ -37,8 +52,8 @@ export function EvidenceDrawer() {
           <div>
             <div className="text-xs text-muted-foreground">Top Evidence</div>
             <ul className="mt-2 space-y-3">
-              {evidences.map((e) => (
-                <li key={e.doc_id} className="rounded-md border p-3">
+              {evidences.map((e, idx) => (
+                <li key={`${e.doc_id}-${idx}`} className="rounded-md border p-3">
                   <div className="text-xs text-muted-foreground">{e.source || e.doc_id} • score {(e.score ?? 0).toFixed(2)}</div>
                   <div className="mt-1 text-sm whitespace-pre-wrap">{e.snippet}</div>
                   {e.metadata && (
