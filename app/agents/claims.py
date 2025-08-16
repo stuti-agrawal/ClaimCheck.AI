@@ -113,7 +113,7 @@ def run_claim_extractor(transcript: str) -> Dict[str, Any]:
     repair_payload = {
         "input": f"Return ONLY valid JSON object with key 'claims'. Fix and output JSON:\n\n{txt}",
         "parameters": {"decoding_method": "greedy", "max_new_tokens": 400, "temperature": 0.0},
-        "model_id": CLAIM_MODEL_ID,
+        "model_id": IBM_CLAIM_MODEL_ID,
         "project_id": WATSONX_PROJECT
     }
     repaired = _gen_post(repair_payload)

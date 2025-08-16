@@ -1,0 +1,28 @@
+{
+  "call_summary": "Customer plans to expand to three additional teams next month. Pricing to remain the same. Risk of churn if support SLAs slip again.",
+  "action_items": [
+    "Confirm expansion timeline and seats",
+    "Share support SLA improvements",
+    "Send pricing confirmation"
+  ],
+  "claim_table": [
+    { "claim": "Customer will expand to 3 more teams next month", "status": "supported", "evidence_source": "kb:success_story_12" },
+    { "claim": "Pricing will increase next quarter", "status": "refuted", "evidence_source": "kb:pricing_policy" },
+    { "claim": "Customer will churn if SLAs slip again", "status": "supported", "evidence_source": "kb:retention_playbook" }
+  ],
+  "claims": [
+    { "id": "c1", "text": "Customer will expand to 3 more teams next month", "speaker": "Customer", "start": 12, "end": 18, "confidence": 0.92 },
+    { "id": "c2", "text": "Pricing will increase next quarter", "speaker": "Agent", "start": 33, "end": 40, "confidence": 0.71 },
+    { "id": "c3", "text": "Customer will churn if SLAs slip again", "speaker": "Customer", "start": 62, "end": 74, "confidence": 0.88 }
+  ],
+  "evidence": [
+    { "doc_id": "kb:success_story_12", "source": "Case Study", "snippet": "The expansion plan includes onboarding three additional teams in the following month.", "score": 0.83 },
+    { "doc_id": "kb:pricing_policy", "source": "Policy", "snippet": "Pricing remains stable for existing contracts through the next quarter.", "score": 0.79 },
+    { "doc_id": "kb:retention_playbook", "source": "Playbook", "snippet": "Customers citing SLA concerns are at churn risk; ensure proactive communication.", "score": 0.76 }
+  ],
+  "verdicts": [
+    { "claim_id": "c1", "label": "supported", "confidence": 0.86, "best_evidence_id": "kb:success_story_12", "rationale": "KB confirms planned expansion to three teams next month." },
+    { "claim_id": "c2", "label": "refuted", "confidence": 0.81, "best_evidence_id": "kb:pricing_policy", "rationale": "Policy states no price increase next quarter for existing contracts." },
+    { "claim_id": "c3", "label": "supported", "confidence": 0.74, "best_evidence_id": "kb:retention_playbook", "rationale": "Playbook indicates churn risk when SLAs slip; aligns with customer statement." }
+  ]
+} 

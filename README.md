@@ -98,7 +98,15 @@ If you change the KB, rebuild the index by deleting the `kb/index/` folder.
 KMP_DUPLICATE_LIB_OK=TRUE OMP_NUM_THREADS=1 uvicorn app.main:app --reload
 ```
 
-### 5) Try it
+### 5) Run the UI
+```bash
+cd ui
+pnpm install
+pnpm dev
+```
+- If you change the UI dev port/host, add it to `allow_origins` in `app/main.py`.
+
+### 6) Try it
 
 **Transcript path (no audio):**
 ```bash
